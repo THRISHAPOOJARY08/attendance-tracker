@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Tracker — Login</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 50%, #1e3a5f 100%);
+    color: #1f2328;
+  }
+
+  .wrapper {
+    display: flex;
+    width: 100%;
+    max-width: 900px;
+    min-height: 520px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,.35);
+    margin: 24px;
+  }
+
+  /* Left panel */
+  .left {
+    flex: 1;
+    background: linear-gradient(160deg, #1a3a6e 0%, #2563b0 100%);
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: #fff;
+  }
+  .left-icon { font-size: 52px; margin-bottom: 20px; }
+  .left h1 { font-size: 28px; font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
+  .left p  { font-size: 14px; opacity: .75; line-height: 1.7; }
+  .features { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; }
+  .feature { display: flex; align-items: center; gap: 12px; font-size: 13px; opacity: .9; }
+  .feature-dot { width: 8px; height: 8px; border-radius: 50%; background: #60a5fa; flex-shrink: 0; }
+
+  /* Right panel */
+  .right {
+    width: 400px;
+    background: #fff;
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .right h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .right .sub { font-size: 13px; color: #57606a; margin-bottom: 32px; }
+
+  .field { margin-bottom: 20px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #57606a;
+    margin-bottom: 7px;
+  }
+  .input-wrap { position: relative; }
+  .input-wrap .icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px;
+    pointer-events: none;
+  }
+  .field input {
+    width: 100%;
+    padding: 11px 12px 11px 38px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    background: #f9fafb;
+    color: #1f2328;
+  }
+  .field input:focus {
+    border-color: #2563b0;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(37,99,176,.12);
+  }
+
+  .btn-login {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #2563b0, #1d4ed8);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+    margin-top: 4px;
+    letter-spacing: .02em;
+  }
+  .btn-login:hover   { opacity: .92; }
+  .btn-login:active  { transform: scale(.98); }
+  .btn-login:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+
+  .error {
+    background: #fff1f2;
+    border: 1px solid #fda4af;
+    color: #be123c;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 18px;
+    display: none;
+  }
+
+  @media(max-width: 680px) {
+    .left { display: none; }
+    .right { width: 100%; border-radius: 20px; }
+    .wrapper { margin: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="left">
+    <div class="left-icon">📋</div>
+    <h1>Attendance Tracker</h1>
+    <p>Manage your team's attendance, leave requests, and reports — all in one place.</p>
+    <div class="features">
+      <div class="feature"><div class="feature-dot"></div>One-click check-in &amp; check-out</div>
+      <div class="feature"><div class="feature-dot"></div>Leave request &amp; manager approval</div>
+      <div class="feature"><div class="feature-dot"></div>Personal attendance history</div>
+      <div class="feature"><div class="feature-dot"></div>Team-wide reports for managers</div>
+    </div>
+  </div>
+
+  <div class="right">
+    <h2>Welcome back</h2>
+    <p class="sub">Sign in to your account to continue</p>
+
+    <div class="error" id="err"></div>
+
+    <div class="field">
+      <label>Username</label>
+      <div class="input-wrap">
+        <span class="icon">👤</span>
+        <input type="text" id="username" placeholder="Enter your username" autocomplete="username">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="input-wrap">
+        <span class="icon">🔒</span>
+        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+    </div>
+
+    <button class="btn-login" id="btn" onclick="login()">Sign In</button>
+  </div>
+</div>
+
+<script>
+  document.getElementById("password").addEventListener("keydown", e => {
+    if (e.key === "Enter") login();
+  });
+
+  async function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value;
+    const btn = document.getElementById("btn");
+    document.getElementById("err").style.display = "none";
+    if (!username || !password) { showErr("Please enter username and password."); return; }
+    btn.disabled = true;
+    btn.textContent = "Signing in...";
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showErr(data.detail || "Login failed"); return; }
+      window.location.href = data.role === "manager" ? "/manager" : "/dashboard";
+    } catch { showErr("Cannot reach server. Is it running?"); }
+    finally { btn.disabled = false; btn.textContent = "Sign In"; }
+  }
+
+  function showErr(msg) {
+    const el = document.getElementById("err");
+    el.textContent = msg;
+    el.style.display = "block";
+  }
+</script>
+</body>
+</html>

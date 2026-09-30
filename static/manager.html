@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manager Dashboard — Attendance Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue:#2563b0; --green:#16a34a; --red:#dc2626; --amber:#d97706;
+    --purple:#7c3aed; --bg:#f1f5f9; --card:#fff; --border:#e2e8f0;
+    --text:#0f172a; --muted:#64748b;
+  }
+  body { font-family:-apple-system,"Segoe UI",system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  nav { background:linear-gradient(135deg,#1a3a6e,#2563b0); padding:0 28px; height:60px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 12px rgba(0,0,0,.18); position:sticky; top:0; z-index:20; }
+  .nav-brand { color:#fff; font-weight:800; font-size:17px; display:flex; align-items:center; gap:10px; }
+  .mgr-badge { background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.3); color:#fff; font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; letter-spacing:.04em; }
+  .nav-right { display:flex; align-items:center; gap:14px; }
+  .nav-name { color:rgba(255,255,255,.85); font-size:13px; }
+  .nav-btn { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); color:#fff; border-radius:6px; padding:6px 14px; font-size:13px; cursor:pointer; transition:background .15s; }
+  .nav-btn:hover { background:rgba(255,255,255,.28); }
+
+  .tab-bar { background:#fff; border-bottom:1px solid var(--border); padding:0 28px; display:flex; gap:4px; overflow-x:auto; }
+  .tab-btn { padding:16px 18px; font-size:13px; font-weight:500; cursor:pointer; border:none; background:none; color:var(--muted); border-bottom:2.5px solid transparent; margin-bottom:-1px; transition:color .15s,border-color .15s; white-space:nowrap; }
+  .tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); font-weight:700; }
+  .tab-btn:hover:not(.active) { color:var(--text); }
+
+  .page { max-width:1040px; margin:28px auto; padding:0 20px 48px; }
+  .section { display:none; }
+  .section.active { display:block; }
+
+  .card { background:var(--card); border-radius:14px; border:1px solid var(--border); padding:24px; margin-bottom:20px; box-shadow:0 1px 4px rgba(0,0,0,.05); }
+  .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .card-header-left { display:flex; align-items:center; gap:10px; }
+  .card-icon { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+  .icon-blue{background:#dbeafe} .icon-green{background:#dcfce7} .icon-amber{background:#fef3c7} .icon-purple{background:#ede9fe} .icon-red{background:#fee2e2}
+  .card-title { font-size:15px; font-weight:700; }
+  .card-sub { font-size:12px; color:var(--muted); margin-top:1px; }
+
+  .btn { padding:9px 18px; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s,transform .1s; display:inline-flex; align-items:center; gap:6px; }
+  .btn:active { transform:scale(.97); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn:hover:not(:disabled) { opacity:.88; }
+  .btn-sm { padding:6px 12px; font-size:12px; }
+  .btn-green { background:linear-gradient(135deg,#16a34a,#15803d); color:#fff; }
+  .btn-red   { background:linear-gradient(135deg,#dc2626,#b91c1c); color:#fff; }
+  .btn-blue  { background:linear-gradient(135deg,#2563b0,#1d4ed8); color:#fff; }
+  .btn-amber { background:linear-gradient(135deg,#d97706,#b45309); color:#fff; }
+  .btn-ghost { background:#f8fafc; border:1.5px solid var(--border); color:var(--text); }
+  .btn-ghost:hover { background:#f1f5f9; opacity:1; }
+
+  .tbl-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { background:#f8fafc; padding:10px 14px; text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); border-bottom:1px solid var(--border); }
+  td { padding:12px 14px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:#f8fafc; }
+
+  .pill { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  .pill-pending  { background:#fef3c7; color:#92400e; }
+  .pill-approved { background:#dcfce7; color:#15803d; }
+  .pill-rejected { background:#fee2e2; color:#b91c1c; }
+  .pill-manager  { background:#dbeafe; color:#1e40af; }
+  .pill-employee { background:#f1f5f9; color:var(--muted); }
+  .pill-open     { background:#fef3c7; color:#92400e; }
+  .pill-closed   { background:#dcfce7; color:#15803d; }
+
+  .user-cell { display:flex; align-items:center; gap:10px; }
+  .avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:#fff; flex-shrink:0; }
+
+  .filter-row { display:flex; gap:12px; align-items:flex-end; margin-bottom:20px; flex-wrap:wrap; }
+  .filter-field label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); display:block; margin-bottom:6px; }
+  .filter-field input, .filter-field select { padding:9px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:13px; outline:none; background:#f8fafc; color:var(--text); transition:border-color .15s; }
+  .filter-field input:focus, .filter-field select:focus { border-color:var(--blue); background:#fff; }
+
+  .section-heading { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:20px 0 10px; }
+
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:50; align-items:center; justify-content:center; backdrop-filter:blur(2px); }
+  .modal-overlay.open { display:flex; }
+  .modal { background:#fff; border-radius:16px; padding:32px; width:100%; max-width:460px; box-shadow:0 24px 60px rgba(0,0,0,.2); max-height:90vh; overflow-y:auto; }
+  .modal h3 { font-size:18px; font-weight:800; margin-bottom:20px; }
+  .form-field { margin-bottom:16px; }
+  .form-field label { display:block; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:6px; }
+  .form-field input, .form-field select, .form-field textarea { width:100%; padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:14px; outline:none; background:#f8fafc; transition:border-color .15s,box-shadow .15s; font-family:inherit; }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,176,.1); background:#fff; }
+  .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+
+  .leave-card { border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin-bottom:12px; transition:box-shadow .15s; }
+  .leave-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.08); }
+  .leave-card:last-child { margin-bottom:0; }
+  .leave-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .lc-info .lc-name { font-size:14px; font-weight:700; }
+  .lc-info .lc-meta { font-size:12px; color:var(--muted); margin-top:3px; }
+  .lc-desc { font-size:12px; color:var(--text); background:#f8fafc; border-radius:6px; padding:8px 12px; margin-top:10px; border-left:3px solid var(--blue); font-style:italic; }
+  .lc-actions { display:flex; gap:8px; flex-shrink:0; }
+
+  /* summary stats */
+  .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+  .stat-box { background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:16px; text-align:center; }
+  .stat-val { font-size:24px; font-weight:800; color:var(--blue); }
+  .stat-lbl { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-top:4px; }
+
+  #toast { position:fixed; bottom:28px; right:28px; padding:13px 20px; border-radius:10px; font-size:13px; font-weight:500; color:#fff; opacity:0; transition:opacity .3s,transform .3s; transform:translateY(10px); pointer-events:none; z-index:99; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+  #toast.show { opacity:1; transform:translateY(0); }
+  .empty { color:var(--muted); font-size:13px; padding:32px 0; text-align:center; }
+
+  /* PDF print styles */
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">📋 Attendance Tracker <span class="mgr-badge">MANAGER</span></div>
+  <div class="nav-right">
+    <span class="nav-name" id="nav-name">Loading...</span>
+    <button class="nav-btn" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('leaves',this)">🏖️ Leave Requests</button>
+  <button class="tab-btn" onclick="switchTab('report',this)">📊 Team Report</button>
+  <button class="tab-btn" onclick="switchTab('individual',this)">👤 Individual Report</button>
+  <button class="tab-btn" onclick="switchTab('users',this)">👥 Team Members</button>
+</div>
+
+<div class="page">
+
+  <!-- Leave Requests -->
+  <div id="tab-leaves" class="section active">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-icon icon-amber">🏖️</div>
+          <div><div class="card-title">Pending Leave Requests</div><div class="card-sub">Approve or reject employee requests</div></div>
+        </div>
+      </div>
+      <div id="pending-list"><p class="empty">Loading...</p></div>
+    </div>
+  </div>
+
+  <!-- Team Report -->
+  <div id="tab-report" class="section">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-icon icon-blue">📊</div>
+          <div><div class="card-title">Team Attendance Report</div><div class="card-sub">View attendance across the whole team</div></div>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="filter-field"><label>From</label><input type="date" id="report-start"></div>
+        <div class="filter-field"><label>To</label><input type="date" id="report-end"></div>
+        <button class="btn btn-blue" onclick="loadReport()">Load Report</button>
+      </div>
+      <div id="report-output"><p class="empty">Select a date range and click Load Report.</p></div>
+    </div>
+  </div>
+
+  <!-- Individual Report -->
+  <div id="tab-individual" class="section">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-icon icon-purple">👤</div>
+          <div><div class="card-title">Individual Employee Report</div><div class="card-sub">Full attendance + approved leave report for one employee</div></div>
+        </div>
+      </div>
+      <div class="filter-row" id="pdf-btn-row">
+        <div class="filter-field">
+          <label>Employee</label>
+          <select id="emp-select"><option value="">Select employee...</option></select>
+        </div>
+        <div class="filter-field"><label>From</label><input type="date" id="emp-start"></div>
+        <div class="filter-field"><label>To</label><input type="date" id="emp-end"></div>
+        <button class="btn btn-blue" onclick="loadEmpReport()">Generate Report</button>
+        <button class="btn btn-amber" onclick="downloadPDF()" id="pdf-btn" style="display:none">⬇️ Download PDF</button>
+      </div>
+      <div id="emp-report-output"><p class="empty">Select an employee and click Generate Report.</p></div>
+    </div>
+  </div>
+
+  <!-- Team Members -->
+  <div id="tab-users" class="section">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-left">
+          <div class="card-icon icon-purple">👥</div>
+          <div><div class="card-title">Team Members</div><div class="card-sub">Manage employee accounts</div></div>
+        </div>
+        <button class="btn btn-blue btn-sm" onclick="openAddUser()">+ Add Employee</button>
+      </div>
+      <div id="users-list"><p class="empty">Loading...</p></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal-overlay" id="add-user-modal">
+  <div class="modal">
+    <h3>➕ Add New Employee</h3>
+    <div class="form-field"><label>Full Name</label><input id="u-name" placeholder="e.g. Jane Smith"></div>
+    <div class="form-field"><label>Username</label><input id="u-username" placeholder="e.g. jane.smith"></div>
+    <div class="form-field"><label>Password</label><input type="password" id="u-password" placeholder="Temporary password"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddUser()">Cancel</button>
+      <button class="btn btn-blue" onclick="addUser()">Create Employee</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal-overlay" id="del-modal">
+  <div class="modal" style="max-width:380px">
+    <h3>🗑️ Remove Employee</h3>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:20px">Are you sure you want to remove <strong id="del-name"></strong>? This cannot be undone.</p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeDelModal()">Cancel</button>
+      <button class="btn btn-red" onclick="confirmDelete()">Yes, Remove</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const COLORS=["#2563b0","#16a34a","#dc2626","#d97706","#7c3aed","#0891b2","#be185d","#065f46"];
+  function avatarColor(n){let h=0;for(let c of n)h=(h*31+c.charCodeAt(0))%COLORS.length;return COLORS[h];}
+  function initials(n){return n.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();}
+  function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):"";}
+  function leaveIcon(t){const m={sick:"🤒",casual:"😊",paid:"💰",maternity:"🤱",paternity:"👨‍👧",bereavement:"🖤",compensatory:"🔄",unpaid:"⏸️"};return m[t]||"📋";}
+
+  let _deleteTarget = null;
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const me = await fetchJSON("/api/me");
+    if (!me) { window.location.href="/"; return; }
+    if (me.role !== "manager") { window.location.href="/dashboard"; return; }
+    document.getElementById("nav-name").textContent = me.name;
+
+    const today = new Date().toISOString().slice(0,10);
+    const firstOfMonth = today.slice(0,8)+"01";
+    document.getElementById("report-start").value = today;
+    document.getElementById("report-end").value = today;
+    document.getElementById("emp-start").value = firstOfMonth;
+    document.getElementById("emp-end").value = today;
+
+    await loadPendingLeaves();
+    await loadUsers();
+    await loadEmployeeSelector();
+  });
+
+  function switchTab(name, btn) {
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-"+name).classList.add("active");
+  }
+
+  // ── Leave Requests ────────────────────────────────────────────────────────
+  async function loadPendingLeaves() {
+    const list = await fetchJSON("/api/manager/leaves/pending");
+    const el = document.getElementById("pending-list");
+    if (!list || list.length===0) { el.innerHTML="<p class='empty'>🎉 No pending leave requests.</p>"; return; }
+    el.innerHTML = list.map(lv=>`
+      <div class="leave-card">
+        <div class="leave-card-top">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="avatar" style="background:${avatarColor(lv.name)}">${initials(lv.name)}</div>
+            <div class="lc-info">
+              <div class="lc-name">${lv.name} <span style="font-weight:400;color:var(--muted);font-size:12px">(${lv.user_id})</span></div>
+              <div class="lc-meta">
+                ${leaveIcon(lv.leave_type)} <strong>${cap(lv.leave_type)} Leave</strong>
+                &nbsp;&middot;&nbsp; ${lv.start_date} &rarr; ${lv.end_date}
+                &nbsp;&middot;&nbsp; ${lv.days} day${lv.days>1?'s':''}
+                &nbsp;&middot;&nbsp; Submitted ${lv.submitted_at.slice(0,10)}
+              </div>
+            </div>
+          </div>
+          <div class="lc-actions">
+            <button class="btn btn-green btn-sm" onclick="decide('${lv.request_id}','approved')">✅ Approve</button>
+            <button class="btn btn-red btn-sm"   onclick="decide('${lv.request_id}','rejected')">❌ Reject</button>
+          </div>
+        </div>
+        ${lv.description ? `<div class="lc-desc">💬 "${lv.description}"</div>` : ""}
+      </div>`).join("");
+  }
+
+  async function decide(request_id, decision) {
+    const r = await postJSON("/api/manager/leaves/decide", {request_id, decision});
+    toast(r.message||r.detail, r.ok);
+    await loadPendingLeaves();
+  }
+
+  // ── Team Report ───────────────────────────────────────────────────────────
+  async function loadReport() {
+    const start = document.getElementById("report-start").value;
+    const end   = document.getElementById("report-end").value;
+    if (!start||!end) { toast("Please select both dates", false); return; }
+    const data = await fetchJSON(`/api/manager/report?start=${start}&end=${end}`);
+    const el = document.getElementById("report-output");
+    if (!data) { el.innerHTML="<p class='empty'>Failed to load.</p>"; return; }
+    let html="";
+    if (data.attendance.length>0) {
+      html+=`<div class="section-heading">Attendance Records</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th><th>Employee</th><th>Check-in</th><th>Check-out</th><th>Duration</th><th>Status</th></tr></thead>
+        <tbody>`+data.attendance.map(r=>`
+        <tr>
+          <td style="font-weight:600">${r.date}</td>
+          <td><div class="user-cell"><div class="avatar" style="background:${avatarColor(r.name)};width:28px;height:28px;font-size:11px">${initials(r.name)}</div>${r.name}</div></td>
+          <td>${r.checkin}</td><td>${r.checkout}</td>
+          <td style="font-weight:600;color:var(--blue)">${r.duration}</td>
+          <td><span class="pill pill-${r.status==='closed'?'approved':'open'}">${cap(r.status)}</span></td>
+        </tr>`).join("")+`</tbody></table></div>`;
+    }
+    if (data.leaves.length>0) {
+      html+=`<div class="section-heading" style="margin-top:24px">Approved Leaves</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th><th>Employee</th><th>Leave Type</th></tr></thead>
+        <tbody>`+data.leaves.map(l=>`
+        <tr>
+          <td style="font-weight:600">${l.date}</td>
+          <td><div class="user-cell"><div class="avatar" style="background:${avatarColor(l.name)};width:28px;height:28px;font-size:11px">${initials(l.name)}</div>${l.name}</div></td>
+          <td>${leaveIcon(l.leave_type)} ${cap(l.leave_type)}</td>
+        </tr>`).join("")+`</tbody></table></div>`;
+    }
+    if (!html) html="<p class='empty'>No records for this date range.</p>";
+    el.innerHTML=html;
+  }
+
+  // ── Individual Report ─────────────────────────────────────────────────────
+  async function loadEmployeeSelector() {
+    const list = await fetchJSON("/api/manager/users");
+    if (!list) return;
+    const sel = document.getElementById("emp-select");
+    list.filter(u=>u.role==="employee").forEach(u=>{
+      const o = document.createElement("option");
+      o.value = u.username;
+      o.textContent = u.name + " (" + u.username + ")";
+      sel.appendChild(o);
+    });
+  }
+
+  // track current report params for PDF download
+  let _empReportParams = null;
+
+  async function loadEmpReport() {
+    const username = document.getElementById("emp-select").value;
+    const start    = document.getElementById("emp-start").value;
+    const end      = document.getElementById("emp-end").value;
+    if (!username) { toast("Please select an employee", false); return; }
+    if (!start||!end) { toast("Please select a date range", false); return; }
+    _empReportParams = {username, start, end};
+
+    const data = await fetchJSON(`/api/manager/employee-report/${username}?start=${start}&end=${end}`);
+    const el = document.getElementById("emp-report-output");
+    if (!data) { el.innerHTML="<p class='empty'>Failed to load report.</p>"; return; }
+
+    const emp = data.employee;
+    const s   = data.summary;
+    const per = data.period;
+
+    let html = `
+      <div style="display:flex;align-items:center;gap:16px;padding:16px;background:#f8fafc;border-radius:10px;margin-bottom:20px;border:1px solid var(--border)">
+        <div class="avatar" style="width:52px;height:52px;font-size:20px;background:${avatarColor(emp.name)}">${initials(emp.name)}</div>
+        <div>
+          <div style="font-size:18px;font-weight:800">${emp.name}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:2px">@${emp.username} &nbsp;&middot;&nbsp; ${cap(emp.role)} &nbsp;&middot;&nbsp; Period: ${per.start} to ${per.end}</div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val">${s.present_days}</div><div class="stat-lbl">Days Present</div></div>
+        <div class="stat-box"><div class="stat-val">${s.total_hours}</div><div class="stat-lbl">Total Hours</div></div>
+        <div class="stat-box"><div class="stat-val">${s.leave_days}</div><div class="stat-lbl">Leave Days</div></div>
+      </div>`;
+
+    if (data.attendance.length>0) {
+      html+=`<div class="section-heading">Attendance Records</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th><th>Check-in</th><th>Check-out</th><th>Duration</th><th>Status</th></tr></thead>
+        <tbody>`+data.attendance.map(r=>`
+        <tr>
+          <td style="font-weight:600">${r.date}</td>
+          <td>${r.checkin}</td>
+          <td>${r.checkout}</td>
+          <td style="font-weight:600;color:var(--blue)">${r.duration}</td>
+          <td><span class="pill pill-${r.status==='closed'?'approved':'open'}">${cap(r.status)}</span></td>
+        </tr>`).join("")+`</tbody></table></div>`;
+    } else {
+      html+=`<p style="color:var(--muted);font-size:13px;margin:16px 0">No attendance records for this period.</p>`;
+    }
+
+    if (data.leaves.length>0) {
+      html+=`<div class="section-heading" style="margin-top:24px">Approved Leave Applications</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Leave Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Approved By</th></tr></thead>
+        <tbody>`+data.leaves.map(lv=>`
+        <tr>
+          <td>${leaveIcon(lv.leave_type)} <strong>${cap(lv.leave_type)}</strong></td>
+          <td>${lv.start_date}</td>
+          <td>${lv.end_date}</td>
+          <td style="font-weight:700;color:var(--amber)">${lv.days}</td>
+          <td style="color:var(--muted);font-style:italic">${lv.description||"—"}</td>
+          <td style="color:var(--muted)">@${lv.decided_by||"—"}</td>
+        </tr>`).join("")+`</tbody></table></div>`;
+    } else {
+      html+=`<p style="color:var(--muted);font-size:13px;margin:16px 0">No approved leaves for this period.</p>`;
+    }
+
+    el.innerHTML=html;
+    document.getElementById("pdf-btn").style.display="inline-flex";
+  }
+
+  async function downloadPDF() {
+    if (!_empReportParams) return;
+    const {username, start, end} = _empReportParams;
+    const btn = document.getElementById("pdf-btn");
+    btn.disabled = true;
+    btn.textContent = "⏳ Generating…";
+    try {
+      const resp = await fetch(`/api/manager/employee-report/${username}/pdf?start=${start}&end=${end}`);
+      if (!resp.ok) { toast("Failed to generate PDF", false); return; }
+      const blob = await resp.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      // derive filename from Content-Disposition or fall back
+      const cd   = resp.headers.get("Content-Disposition") || "";
+      const match = cd.match(/filename="([^"]+)"/);
+      a.download = match ? match[1] : `report_${username}_${start}_${end}.pdf`;
+      a.href = url;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast("PDF downloaded ✓");
+    } catch { toast("Download failed", false); }
+    finally { btn.disabled = false; btn.innerHTML = "⬇️ Download PDF"; }
+  }
+
+  // ── Team Members ──────────────────────────────────────────────────────────
+  async function loadUsers() {
+    const list = await fetchJSON("/api/manager/users");
+    const el = document.getElementById("users-list");
+    if (!list||list.length===0) { el.innerHTML="<p class='empty'>No users yet.</p>"; return; }
+    const employees = list.filter(u=>u.role==="employee");
+    const managers  = list.filter(u=>u.role==="manager");
+
+    let html="";
+    if (managers.length>0) {
+      html+=`<div class="section-heading">Managers</div>
+      <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th></tr></thead><tbody>`+
+      managers.map(u=>`<tr>
+        <td><div class="user-cell"><div class="avatar" style="background:${avatarColor(u.name)}">${initials(u.name)}</div><strong>${u.name}</strong></div></td>
+        <td style="color:var(--muted)">${u.username}</td>
+        <td><span class="pill pill-manager">Manager</span></td>
+      </tr>`).join("")+`</tbody></table></div>`;
+    }
+
+    if (employees.length>0) {
+      html+=`<div class="section-heading" style="margin-top:${managers.length>0?'20px':'0'}">Employees</div>
+      <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Actions</th></tr></thead><tbody>`+
+      employees.map(u=>`<tr>
+        <td><div class="user-cell"><div class="avatar" style="background:${avatarColor(u.name)}">${initials(u.name)}</div><strong>${u.name}</strong></div></td>
+        <td style="color:var(--muted)">${u.username}</td>
+        <td><span class="pill pill-employee">Employee</span></td>
+        <td>
+          <button class="btn btn-red btn-sm" onclick="openDelModal('${u.username}','${u.name.replace(/'/g,"\\'")}')">🗑️ Remove</button>
+        </td>
+      </tr>`).join("")+`</tbody></table></div>`;
+    }
+
+    if (!html) html="<p class='empty'>No team members yet.</p>";
+    el.innerHTML=html;
+  }
+
+  function openAddUser()  { document.getElementById("add-user-modal").classList.add("open"); }
+  function closeAddUser() {
+    document.getElementById("add-user-modal").classList.remove("open");
+    ["u-name","u-username","u-password"].forEach(id=>document.getElementById(id).value="");
+  }
+
+  async function addUser() {
+    const name     = document.getElementById("u-name").value.trim();
+    const username = document.getElementById("u-username").value.trim();
+    const password = document.getElementById("u-password").value;
+    if (!name||!username||!password) { toast("All fields are required", false); return; }
+    const r = await postJSON("/api/manager/users", {name, username, password, role:"employee"});
+    toast(r.message||r.detail, r.ok);
+    if (r.ok) {
+      closeAddUser();
+      await loadUsers();
+      await loadEmployeeSelector();
+    }
+  }
+
+  function openDelModal(username, name) {
+    _deleteTarget = username;
+    document.getElementById("del-name").textContent = name;
+    document.getElementById("del-modal").classList.add("open");
+  }
+  function closeDelModal() {
+    _deleteTarget = null;
+    document.getElementById("del-modal").classList.remove("open");
+  }
+
+  async function confirmDelete() {
+    if (!_deleteTarget) return;
+    try {
+      const r = await fetch(`/api/manager/users/${_deleteTarget}`, {method:"DELETE"});
+      const data = await r.json();
+      toast(data.message||data.detail, r.ok);
+      if (r.ok) { closeDelModal(); await loadUsers(); await loadEmployeeSelector(); }
+    } catch { toast("Server error", false); }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  async function fetchJSON(url) {
+    try {
+      const r = await fetch(url);
+      if (r.status===401) { window.location.href="/"; return null; }
+      if (r.status===403) { window.location.href="/dashboard"; return null; }
+      return await r.json();
+    } catch { return null; }
+  }
+  async function postJSON(url, body={}) {
+    try {
+      const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      return await r.json();
+    } catch { return {ok:false,message:"Server error"}; }
+  }
+  async function logout() { await postJSON("/api/logout"); window.location.href="/"; }
+
+  function toast(msg, ok=true) {
+    const el = document.getElementById("toast");
+    el.textContent = (ok?"✅ ":"❌ ")+msg;
+    el.style.background = ok?"#16a34a":"#dc2626";
+    el.classList.add("show");
+    setTimeout(()=>el.classList.remove("show"), 3500);
+  }
+</script>
+</body>
+</html>

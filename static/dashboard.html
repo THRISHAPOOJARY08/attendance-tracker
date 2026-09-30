@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard — Attendance Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:   #2563b0;
+    --green:  #16a34a;
+    --red:    #dc2626;
+    --amber:  #d97706;
+    --purple: #7c3aed;
+    --bg:     #f1f5f9;
+    --card:   #ffffff;
+    --border: #e2e8f0;
+    --text:   #0f172a;
+    --muted:  #64748b;
+  }
+
+  body { font-family: -apple-system,"Segoe UI",system-ui,sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── Nav ── */
+  nav {
+    background: linear-gradient(135deg, #1a3a6e, #2563b0);
+    padding: 0 28px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,.18);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-brand { color: #fff; font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .nav-right { display: flex; align-items: center; gap: 14px; }
+  .nav-name { color: rgba(255,255,255,.85); font-size: 13px; }
+  .nav-btn {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.25);
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,.25); }
+
+  /* ── Layout ── */
+  .page { max-width: 960px; margin: 32px auto; padding: 0 20px 48px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width:640px) { .grid2 { grid-template-columns: 1fr; } }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .card-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+  .icon-blue   { background: #dbeafe; }
+  .icon-green  { background: #dcfce7; }
+  .icon-amber  { background: #fef3c7; }
+  .icon-purple { background: #ede9fe; }
+  .card-title  { font-size: 15px; font-weight: 700; }
+  .card-sub    { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  /* ── Today card ── */
+  .today-center { text-align: center; padding: 4px 0 16px; }
+  .today-date { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+
+  .status-ring {
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    margin: 0 auto 16px;
+    font-size: 28px;
+    border: 4px solid;
+  }
+  .ring-absent  { border-color: #e2e8f0; background: #f8fafc; }
+  .ring-open    { border-color: #fbbf24; background: #fffbeb; }
+  .ring-closed  { border-color: #4ade80; background: #f0fdf4; }
+  .ring-leave   { border-color: #a78bfa; background: #f5f3ff; }
+
+  .status-label { font-size: 12px; font-weight: 700; margin-top: 4px; letter-spacing: .04em; }
+  .label-absent  { color: var(--muted); }
+  .label-open    { color: var(--amber); }
+  .label-closed  { color: var(--green); }
+  .label-leave   { color: var(--purple); }
+
+  .times-row { display: flex; justify-content: center; gap: 32px; margin-bottom: 20px; }
+  .time-box { text-align: center; }
+  .time-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+  .time-value { font-size: 18px; font-weight: 700; color: var(--text); }
+
+  .action-row { display: flex; gap: 10px; justify-content: center; }
+  .btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .btn-green  { background: linear-gradient(135deg,#16a34a,#15803d); color: #fff; }
+  .btn-red    { background: linear-gradient(135deg,#dc2626,#b91c1c); color: #fff; }
+  .btn-blue   { background: linear-gradient(135deg,#2563b0,#1d4ed8); color: #fff; }
+  .btn:hover:not(:disabled) { opacity: .88; }
+
+  /* ── Leave form ── */
+  .form-field { margin-bottom: 16px; }
+  .form-field label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; }
+  .form-field select, .form-field input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    background: #f8fafc;
+    color: var(--text);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .form-field select:focus, .form-field input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37,99,176,.1);
+    background: #fff;
+  }
+
+  /* ── Tabs ── */
+  .tab-row { display: flex; gap: 6px; margin-bottom: 18px; }
+  .tab {
+    padding: 6px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: #fff;
+    color: var(--muted);
+    transition: all .15s;
+  }
+  .tab.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 600; }
+  .tab:hover:not(.active) { border-color: #94a3b8; color: var(--text); }
+
+  /* ── Table ── */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f8fafc; padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 11px 12px; border-bottom: 1px solid #f1f5f9; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .pill-present { background: #dcfce7; color: #15803d; }
+  .pill-absent  { background: #fee2e2; color: #b91c1c; }
+  .pill-leave   { background: #ede9fe; color: #6d28d9; }
+  .pill-future  { background: #f1f5f9; color: var(--muted); }
+  .pill-open    { background: #fef3c7; color: #92400e; }
+
+  /* ── Leave history ── */
+  .leave-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+  .leave-item:last-child { border-bottom: none; }
+  .leave-info .leave-type { font-size: 14px; font-weight: 600; }
+  .leave-info .leave-dates { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .status-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .sb-pending  { background: #fef3c7; color: #92400e; }
+  .sb-approved { background: #dcfce7; color: #15803d; }
+  .sb-rejected { background: #fee2e2; color: #b91c1c; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px;
+    padding: 13px 20px; border-radius: 10px;
+    font-size: 13px; font-weight: 500; color: #fff;
+    opacity: 0; transition: opacity .3s, transform .3s;
+    transform: translateY(10px);
+    pointer-events: none; z-index: 99;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  .section-title { font-size: 20px; font-weight: 800; margin-bottom: 20px; color: var(--text); }
+  .empty { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">📋 Attendance Tracker</div>
+  <div class="nav-right">
+    <span class="nav-name" id="nav-name">Loading...</span>
+    <button class="nav-btn" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="section-title" id="greeting">Good morning 👋</div>
+
+  <div class="grid2">
+
+    <!-- Today -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-blue">🕐</div>
+        <div><div class="card-title">Today's Attendance</div><div class="card-sub" id="today-date">—</div></div>
+      </div>
+      <div class="today-center">
+        <div class="status-ring ring-absent" id="status-ring">
+          <span id="status-emoji">😴</span>
+          <span class="status-label label-absent" id="status-label">NOT IN</span>
+        </div>
+        <div class="times-row">
+          <div class="time-box"><div class="time-label">Check-in</div><div class="time-value" id="ci-time">—</div></div>
+          <div class="time-box"><div class="time-label">Check-out</div><div class="time-value" id="co-time">—</div></div>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-green" id="btn-ci" onclick="checkin()">✅ Check In</button>
+          <button class="btn btn-red"   id="btn-co" onclick="checkout()" disabled>🚪 Check Out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Request Leave -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon icon-amber">🏖️</div>
+        <div><div class="card-title">Request Leave</div><div class="card-sub">Submit a leave request</div></div>
+      </div>
+      <div class="form-field">
+        <label>Leave Type</label>
+        <select id="leave-type">
+          <option value="sick">🤒 Sick Leave</option>
+          <option value="casual">😊 Casual Leave</option>
+          <option value="paid">💰 Paid Leave</option>
+          <option value="maternity">🤱 Maternity Leave</option>
+          <option value="paternity">👨‍👧 Paternity Leave</option>
+          <option value="bereavement">🖤 Bereavement Leave</option>
+          <option value="compensatory">🔄 Compensatory Leave</option>
+          <option value="unpaid">⏸️ Unpaid Leave</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Start Date</label>
+        <input type="date" id="leave-date">
+      </div>
+      <div class="form-field">
+        <label>Number of Days</label>
+        <input type="number" id="leave-days" value="1" min="1">
+      </div>
+      <div class="form-field">
+        <label>Reason / Description</label>
+        <textarea id="leave-desc" rows="2" placeholder="Brief reason for leave..." style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;background:#f8fafc;resize:vertical;font-family:inherit;color:var(--text);transition:border-color .15s" onfocus="this.style.borderColor='#2563b0'" onblur="this.style.borderColor=''"></textarea>
+      </div>
+      <button class="btn btn-blue" style="width:100%;justify-content:center" onclick="submitLeave()">📤 Submit Request</button>
+    </div>
+
+  </div>
+
+  <!-- History -->
+  <div class="card" style="margin-top:20px">
+    <div class="card-header">
+      <div class="card-icon icon-green">📅</div>
+      <div><div class="card-title">Attendance History</div><div class="card-sub">Your check-in/out records</div></div>
+    </div>
+    <div class="tab-row">
+      <button class="tab active" onclick="loadHistory('week', this)">This Week</button>
+      <button class="tab" onclick="loadHistory('month', this)">This Month</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Day</th><th>Check-in</th><th>Check-out</th><th>Duration</th><th>Status</th></tr></thead>
+        <tbody id="history-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Leave history -->
+  <div class="card" style="margin-top:20px">
+    <div class="card-header">
+      <div class="card-icon icon-purple">📋</div>
+      <div><div class="card-title">My Leave Requests</div><div class="card-sub">All submitted leave requests</div></div>
+    </div>
+    <div id="leave-history"><p class="empty">Loading...</p></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const me = await fetchJSON("/api/me");
+    if (!me) { window.location.href = "/"; return; }
+    document.getElementById("nav-name").textContent = me.name;
+
+    const h = new Date().getHours();
+    const greet = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+    document.getElementById("greeting").textContent = greet + ", " + me.name.split(" ")[0] + " 👋";
+
+    document.getElementById("leave-date").value = new Date().toISOString().slice(0, 10);
+
+    await loadToday();
+    await loadHistory("week", document.querySelector(".tab.active"));
+    await loadLeaveHistory();
+  });
+
+  async function loadToday() {
+    const d = await fetchJSON("/api/today");
+    if (!d) return;
+    document.getElementById("today-date").textContent = new Date(d.date).toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+    document.getElementById("ci-time").textContent = d.checkin || "—";
+    document.getElementById("co-time").textContent = d.checkout || "—";
+
+    const ring = document.getElementById("status-ring");
+    const emoji = document.getElementById("status-emoji");
+    const label = document.getElementById("status-label");
+    const btnCI = document.getElementById("btn-ci");
+    const btnCO = document.getElementById("btn-co");
+
+    ring.className = "status-ring";
+    label.className = "status-label";
+
+    if (d.on_leave) {
+      ring.classList.add("ring-leave"); emoji.textContent = "🏖️";
+      label.textContent = "ON LEAVE"; label.classList.add("label-leave");
+      btnCI.disabled = true; btnCO.disabled = true;
+    } else if (d.status === "closed") {
+      ring.classList.add("ring-closed"); emoji.textContent = "✅";
+      label.textContent = "DONE"; label.classList.add("label-closed");
+      btnCI.disabled = true; btnCO.disabled = true;
+    } else if (d.status === "open") {
+      ring.classList.add("ring-open"); emoji.textContent = "⏱️";
+      label.textContent = "WORKING"; label.classList.add("label-open");
+      btnCI.disabled = true; btnCO.disabled = false;
+    } else {
+      ring.classList.add("ring-absent"); emoji.textContent = "😴";
+      label.textContent = "NOT IN"; label.classList.add("label-absent");
+      btnCI.disabled = false; btnCO.disabled = true;
+    }
+  }
+
+  async function checkin()  { const r = await postJSON("/api/checkin");  toast(r.message, r.ok); if (r.ok) await loadToday(); }
+  async function checkout() { const r = await postJSON("/api/checkout"); toast(r.message, r.ok); if (r.ok) await loadToday(); }
+
+  async function submitLeave() {
+    const leave_type = document.getElementById("leave-type").value;
+    const start_date = document.getElementById("leave-date").value;
+    const days = parseInt(document.getElementById("leave-days").value);
+    const description = document.getElementById("leave-desc").value.trim();
+    if (!start_date) { toast("Please pick a start date", false); return; }
+    const r = await postJSON("/api/leave", { leave_type, start_date, days, description });
+    toast(r.message || r.detail, r.ok);
+    if (r.ok) { document.getElementById("leave-desc").value = ""; await loadLeaveHistory(); }
+  }
+
+  async function loadLeaveHistory() {
+    const list = await fetchJSON("/api/leave/my");
+    const el = document.getElementById("leave-history");
+    if (!list || list.length === 0) { el.innerHTML = "<p class='empty'>No leave requests yet.</p>"; return; }
+    el.innerHTML = list.map(lv => `
+      <div class="leave-item">
+        <div class="leave-info">
+          <div class="leave-type">${leaveIcon(lv.leave_type)} ${cap(lv.leave_type)} Leave</div>
+          <div class="leave-dates">${lv.start_date} &rarr; ${lv.end_date} &middot; ${lv.days} day${lv.days>1?'s':''}${lv.description ? ' &middot; <em>' + lv.description + '</em>' : ''}</div>
+        </div>
+        <span class="status-badge sb-${lv.status}">${cap(lv.status)}</span>
+      </div>`).join("");
+  }
+
+  async function loadHistory(period, btn) {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    const rows = await fetchJSON("/api/history?period=" + period);
+    const tbody = document.getElementById("history-body");
+    if (!rows || rows.length === 0) { tbody.innerHTML = "<tr><td colspan='6' class='empty'>No records.</td></tr>"; return; }
+    tbody.innerHTML = rows.map(r => {
+      const pillMap = { present:"pill-present", absent:"pill-absent", leave:"pill-leave", future:"pill-future", open:"pill-open" };
+      const label = r.status === "leave" ? leaveIcon(r.leave_type) + " " + cap(r.leave_type) : cap(r.status);
+      return `<tr>
+        <td style="font-weight:600">${r.date}</td>
+        <td style="color:var(--muted)">${r.weekday}</td>
+        <td>${r.checkin || "—"}</td>
+        <td>${r.checkout || "—"}</td>
+        <td style="font-weight:600;color:var(--blue)">${r.duration || "—"}</td>
+        <td><span class="pill ${pillMap[r.status]||'pill-future'}">${label}</span></td>
+      </tr>`;
+    }).join("");
+  }
+
+  async function fetchJSON(url) {
+    try { const r = await fetch(url); if (r.status===401) { window.location.href="/"; return null; } return await r.json(); }
+    catch { return null; }
+  }
+  async function postJSON(url, body={}) {
+    try { const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); return await r.json(); }
+    catch { return {ok:false,message:"Server error"}; }
+  }
+  async function logout() { await postJSON("/api/logout"); window.location.href="/"; }
+
+  function toast(msg, ok=true) {
+    const el = document.getElementById("toast");
+    el.textContent = (ok ? "✅ " : "❌ ") + msg;
+    el.style.background = ok ? "#16a34a" : "#dc2626";
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 3200);
+  }
+  function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ""; }
+  function leaveIcon(t) {
+    const m={sick:"🤒",casual:"😊",paid:"💰",maternity:"🤱",paternity:"👨‍👧",bereavement:"🖤",compensatory:"🔄",unpaid:"⏸️"};
+    return m[t]||"📋";
+  }
+</script>
+</body>
+</html>
